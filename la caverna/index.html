@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Juego de las Sombras</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        /* Fondo */
+        #background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('454F3A91-134D-4FFE-850A-CC3AD5E218BB.PNG'); 
+            background-size: cover;
+            background-position: center;
+            z-index: -1;
+            filter: brightness(0.7);
+        }
+
+        /* Contenedor */
+        .game-container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #8b5a2b;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.9);
+            max-width: 90%;
+            width: 500px;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #d4af37;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        /* Imagen */
+        #shadow-img {
+            width: 300px;
+            height: 250px;
+            object-fit: contain;
+            margin: 20px auto;
+            display: block;
+            background-color: rgba(255, 255, 255, 0.8); 
+            border-radius: 10px;
+            padding: 10px;
+            transition: transform 0.5s ease;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 90%;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin-top: 15px;
+            cursor: pointer;
+            background-color: #8b5a2b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background-color: #a06d3d;
+        }
+
+        #message {
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.2em;
+            min-height: 1.5em;
+        }
+
+        .hidden {
+            display: none;
+        }
+        
+        /* Estilo especial para el texto BONUS */
+        .bonus-text {
+            color: #ffeb3b; 
+            font-size: 2em;
+            text-shadow: 0 0 10px #ff9800;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="background"></div>
+
+    <audio id="bg-music" loop>
+        <source src="tribal-loop-azteca-154482.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio id="wrong-sound">
+        <source src="buzzer-or-wrong-answer-20582.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio id="correct-sound">
+        <source src="sonido-correcto-331225.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio id="cheer-sound">
+        <source src="cheering-and-clapping-crowd-1-5995.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="start-screen" class="game-container">
+        <h1>Ecos de la Cueva</h1>
+        <p>Escucha... observa... adivina.</p>
+        <button onclick="startGame()">Entrar</button>
+    </div>
+
+    <div id="game-screen" class="game-container hidden">
+        <h2 id="level-indicator">Nivel 1</h2>
+        
+        <img id="shadow-img" src="" alt="Sombra misteriosa" onerror="alert('No encuentro la imagen: ' + this.src)">
+        
+        <p>¿A qué pertenece esta sombra?</p>
+        <input type="text" id="user-guess" placeholder="Respuesta..." autocomplete="off">
+        <br>
+        <button id="btn-guess" onclick="checkAnswer()">Adivinar</button>
+        
+        <p id="message"></p>
+    </div>
+
+    <script>
+        // --- DATOS DE NIVELES ---
+        
+        // 1. Lista de niveles NORMALES (para barajar)
+        const regularLevels = [
+            {
+                shadow: "3C9E9040-90F9-48E1-954D-D80F99165DD9.PNG", 
+                reveal: "IMG_2504.JPG",                              
+                answer: "Tejon"
+            },
+            {
+                shadow: "0EDD9ECD-1D0E-483E-99F3-960E5E9FD9C5.PNG",
+                reveal: "IMG_2506.WEBP",
+                answer: "Lemur"
+            },
+            {
+                shadow: "58D65E9A-2CCD-4459-8F34-F032A3BB3675.PNG",
+                reveal: "IMG_2498.WEBP",
+                answer: "Pinguino"
+            },
+            {
+                shadow: "fb53dac9-87d2-4c78-9230-e530931beb89.JPG",
+                reveal: "IMG_2501.WEBP",
+                answer: "Unicornio"
+            },
+            {
+                shadow: "cc2123b0-f987-4532-8134-b726cd062246.JPG",
+                reveal: "IMG_2496.JPG",
+                answer: "Charlie Brown y Snoopy"
+            },
+            {
+                shadow: "0793556a-777f-4174-a736-9c7b9eba6605.JPG",
+                reveal: "IMG_2495.jpg",
+                answer: "Escarabajo"
+            },
+            {
+                shadow: "FCC605FF-D1AF-4B83-B99C-2C8FE0C0609C.PNG",
+                reveal: "IMG_2277.JPG",
+                answer: "Spiderman"
+            }
+        ];
+
+        // 2. Nivel BONUS (Siempre al final)
+        const bonusLevel = {
+            shadow: "a8de67f3-3f79-4a32-baa5-2ba351594e34.JPG",
+            reveal: "IMG_2507.jpg",
+            answer: "serpiente que se come un elefante"
+        };
+
+        // Array final que construiremos al iniciar
+        let levels = [];
+
+        let currentLevelIndex = 0;
+        let isLevelSolved = false; 
+
+        // Elementos de Audio
+        const music = document.getElementById('bg-music');
+        const wrongSound = document.getElementById('wrong-sound');
+        const correctSound = document.getElementById('correct-sound');
+        const cheerSound = document.getElementById('cheer-sound');
+
+        // Elementos Visuales
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const shadowImg = document.getElementById('shadow-img');
+        const userGuess = document.getElementById('user-guess');
+        const messageDisplay = document.getElementById('message');
+        const levelIndicator = document.getElementById('level-indicator');
+        const btnGuess = document.getElementById('btn-guess');
+
+        // Función para barajar array (Algoritmo Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function startGame() {
+            // 1. Barajamos los niveles normales
+            shuffleArray(regularLevels);
+            
+            // 2. Construimos la lista final: Normales + Bonus al final
+            levels = [...regularLevels, bonusLevel];
+
+            music.volume = 0.5;
+            music.play().catch(e => console.log("Audio interactivo requerido"));
+            startScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            loadLevel();
+        }
+
+        function loadLevel() {
+            // SI SE ACABARON LOS NIVELES (Fin del juego)
+            if (currentLevelIndex >= levels.length) {
+                // Reproducir aplausos
+                cheerSound.play();
+                
+                gameScreen.innerHTML = "<h1>¡JUEGO COMPLETADO!</h1><p>Has demostrado tener una gran imaginación.</p><br><button onclick='location.reload()'>Volver a jugar</button>";
+                return;
+            }
+
+            isLevelSolved = false;
+            const currentLevel = levels[currentLevelIndex];
+            
+            shadowImg.src = currentLevel.shadow;
+            shadowImg.style.transform = "scale(1)"; 
+            
+            // Detectar si es el último nivel para poner el título BONUS
+            if (currentLevelIndex === levels.length - 1) {
+                levelIndicator.innerText = "★ BONUS ★";
+                levelIndicator.classList.add("bonus-text"); 
+            } else {
+                levelIndicator.innerText = "Nivel " + (currentLevelIndex + 1);
+                levelIndicator.classList.remove("bonus-text");
+            }
+
+            userGuess.value = "";
+            userGuess.disabled = false;
+            btnGuess.style.display = "inline-block";
+            messageDisplay.innerText = "";
+            userGuess.focus();
+        }
+
+        function checkAnswer() {
+            if (isLevelSolved) return;
+
+            const input = userGuess.value.trim().toUpperCase();
+            const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ').trim();
+            
+            const guessClean = normalize(input);
+            const answerClean = normalize(levels[currentLevelIndex].answer.toUpperCase());
+
+            if (guessClean === answerClean) {
+                // CORRECTO
+                isLevelSolved = true;
+                
+                correctSound.currentTime = 0;
+                correctSound.play();
+
+                messageDisplay.innerText = "¡Correcto!";
+                messageDisplay.style.color = "#4ff"; 
+
+                shadowImg.src = levels[currentLevelIndex].reveal;
+                shadowImg.style.transform = "scale(1.1)"; 
+
+                userGuess.disabled = true;
+                btnGuess.style.display = "none";
+
+                setTimeout(() => {
+                    currentLevelIndex++;
+                    loadLevel();
+                }, 4000); 
+
+            } else {
+                // INCORRECTO
+                wrongSound.currentTime = 0;
+                wrongSound.play();
+                
+                messageDisplay.innerText = "Incorrecto. Intenta de nuevo.";
+                messageDisplay.style.color = "#f55";
+                
+                const container = document.querySelector('.game-container');
+                container.style.transform = "translateX(5px)";
+                setTimeout(() => container.style.transform = "translateX(-5px)", 50);
+                setTimeout(() => container.style.transform = "translateX(0)", 100);
+            }
+        }
+
+        userGuess.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") checkAnswer();
+        });
+    </script>
+</body>
+</html>
